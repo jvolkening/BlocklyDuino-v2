@@ -1,11 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # credit: http://sheep.art.pl/Wiki%20Engine%20in%20Python%20from%20Scratch
 
 
-import BaseHTTPServer
-import SimpleHTTPServer
+import http.server
 import itertools
 import logging
 import platform
@@ -13,7 +12,7 @@ import os
 import re
 import subprocess
 import tempfile
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from optparse import OptionParser
 
 
@@ -52,7 +51,7 @@ def guess_port_name():
     """Attempt to guess a port name that we might find an Arduino on."""
     portname = None
     if platform.system() == "Windows":
-        import _winreg as winreg
+        import winreg as winreg
         key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "HARDWARE\\DEVICEMAP\\SERIALCOMM")
         # We'll guess it's the last COM port.
         for i in itertools.count():
@@ -78,11 +77,11 @@ parser.add_option("--board", dest="board", help="Board definition to use", metav
 parser.add_option("--command", dest="cmd", help="Arduino command name", metavar="CMD")
 
 
-class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class Handler(http.server.SimpleHTTPRequestHandler):
     def do_HEAD(self):
         """Send response headers"""
         if self.path != "/":
-            return SimpleHTTPServer.SimpleHTTPRequestHandler.do_HEAD(self)
+            return http.server.SimpleHTTPRequestHandler.do_HEAD(self)
         self.send_response(200)
         self.send_header("content-type", "text/html;charset=utf-8")
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -91,7 +90,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_GET(self):
         """Send page text"""
         if self.path != "/":
-            return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+            return http.server.SimpleHTTPRequestHandler.do_GET(self)
         else:
             self.send_response(302)
             self.send_header("Location", "/index.html")
@@ -100,28 +99,28 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_POST(self):
         """Save new page text and display it"""
         if self.path != "/":
-            return SimpleHTTPServer.SimpleHTTPRequestHandler.do_POST(self)
+            return http.server.SimpleHTTPRequestHandler.do_POST(self)
 
         options, args = parser.parse_args()
 
-        length = int(self.headers.getheader('content-length'))
+        length = int(self.headers.get('content-length'))
         if length:
             text = self.rfile.read(length)
                         
-            print "sketch to upload: " + text
+            print("sketch to upload: " + text.decode())
 
             dirname = tempfile.mkdtemp()
             sketchname = os.path.join(dirname, os.path.basename(dirname)) + ".ino"
             f = open(sketchname, "wb")
-            f.write(text + "\n")
+            f.write(text + b"\n")
             f.close()
 
-            print "created sketch at %s" % (sketchname,)
+            print("created sketch at %s" % (sketchname,))
         
             # invoke arduino to build/upload
             compile_args = [
                 options.cmd or get_arduino_command(),
-				"compile",
+                "compile",
                 "--upload",
                 "--port",
                 options.port or guess_port_name(),
@@ -133,14 +132,16 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 ])
             compile_args.append(sketchname)
 
-            print "Uploading with %s" % (" ".join(compile_args))
-            rc = subprocess.call(compile_args)
+            print("Uploading with %s" % (" ".join(compile_args)))
+            p = subprocess.Popen(compile_args, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+            output, err = p.communicate()
+            rc = p.returncode
 
             if not rc == 0:
-                print "arduino --upload returned " + `rc`                            
+                print("arduino --upload returned " + repr(rc))                            
                 self.send_response(400)
             else:
-                self.send_response(200)
+                self.send_response(200, output)
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
         else:
@@ -148,7 +149,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    print "Blocklyduino can now be accessed at http://127.0.0.1:8080/"
-    server = BaseHTTPServer.HTTPServer(("127.0.0.1", 8080), Handler)
+    print("Blocklyduino can now be accessed at http://127.0.0.1:8080/")
+    server = http.server.HTTPServer(("127.0.0.1", 8080), Handler)
     server.pages = {}
     server.serve_forever()
