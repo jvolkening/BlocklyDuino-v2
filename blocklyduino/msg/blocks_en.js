@@ -119,6 +119,12 @@ Blockly.Msg.DS18B20_HELPURL = "https://www.carnetdumaker.net/articles/mesurer-un
 Blockly.Msg.DS18B20_TEXT2 = "sensor DS18B20 value";
 Blockly.Msg.DS18B20_TOOLTIP2 = "returns the value of the temperature sensor, as a floating number";
 
+//HC-SR04 sensors
+Blockly.Msg.HCSR04_TEXT = "HC-SR04 distance (cm)";
+Blockly.Msg.HCSR04_TRIGGER = "Trigger pin";
+Blockly.Msg.HCSR04_ECHO = "Echo pin";
+Blockly.Msg.HCSR04_TOOLTIP = "returns the value of the distance sensor, as a floating number in cm";
+
 //Relays actuators
 Blockly.Msg.RELAY_LOGICAL_TEXT = "relay";
 Blockly.Msg.RELAY_LOGICAL_INPUT = "on pin#";
