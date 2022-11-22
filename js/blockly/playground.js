@@ -144,7 +144,7 @@ function setOnOffLine() {
     } else {
         document.getElementById('verifyButton').disabled = true;
         document.getElementById('serialButton').disabled = true;
-        document.getElementById('uploadButton').disabled = true;
+        document.getElementById('uploadButton').disabled = false;
         document.getElementById('serialConnectButton').disabled = true;
         document.getElementById('serialMenu').disabled = true;
         // not same button if in Electron or browser, if web just webpages launched in browser
